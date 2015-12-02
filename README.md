@@ -1,9 +1,9 @@
 # TripletChain
 TripletLoss criterion for Chainer
 
-# Usage example
+## Usage example
 
-  
+```python
     from chainer import FunctionSet
     from loss import triplet_loss
   
@@ -23,3 +23,4 @@ TripletLoss criterion for Chainer
           y_n = self.forward_once(n, train)
   
           return triplet_loss(y_a, y_p, y_n)
+```
