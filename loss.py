@@ -45,45 +45,47 @@ class TripletLoss(function.Function):
         # extracting batch size
         N = a.shape[0]
         # calculating elementwise differences between a and p, a and n matrices
-        self.a_p_diff = a-p
-        self.a_n_diff = a-n
+        a_p_diff = a-p
+        a_n_diff = a-n
         # calculating AP * AP.T
-        self.AP = xp.dot(self.a_p_diff, self.a_p_diff.T)
+        AP = xp.dot(a_p_diff, a_p_diff.T)
         # calculating AN * AN.T
-        self.AN = xp.dot(self.a_n_diff, self.a_n_diff.T)
+        AN = xp.dot(a_n_diff, a_n_diff.T)
         # subtracting squared positive distance from squared negative distance
-        self.APN_diff = self.AP - self.AN
-        # adding margin
-        self.APN_diff_plus_margin = self.APN_diff + self.margin
+        APN_diff = AP - AN
         # extracting diagonal elements - loss vector of every sample in batch
-        self.APN_diag = xp.diag(self.APN_diff_plus_margin)
+        APN_diag = xp.diag(APN_diff)
+        # adding margin
+        APN_diag_plus_margin = APN_diag + self.margin
+        # thresholding loss with 0
+        self.Li = xp.maximum(0, APN_diag_plus_margin)
         # summing diagonal elements to calculate batch loss
-        self.cumulative_loss = xp.sum(self.APN_diag)
+        cumulative_loss = xp.sum(self.Li)
         # averaging batch loss
-        self._loss = self.cumulative_loss / N
-        self.Li = xp.maximum(0, self._loss)
+        _loss = cumulative_loss / N
         
-        return xp.array(self.Li, dtype=xp.float32),
+        return xp.array(_loss, dtype=xp.float32),
 
     def backward(self, inputs, gy):
         xp = cuda.get_array_module(*inputs)
-        # if batch loss is zero - returning zero gradients
-        if self.Li == 0:
-            gZero = xp.zeros_like(inputs[0])
-            return gZero, gZero, gZero
         a, p, n = inputs
         N = a.shape[0]
-        # calculating n-p, p-a elementwise differences. a-n we have from previous step
-        self.n_p_diff = n-p
-        self.p_a_diff = p-a
+        # calculating n-p, p-a and a-n elementwise differences
+        n_p_diff = n-p
+        p_a_diff = p-a
+        a_n_diff = a-n
         # calculating Loss derivatives over a, n, p
-        self.dLda = self.n_p_diff * 2 / N
-        self.dLdp = self.p_a_diff * 2 / N
-        self.dLdn = self.a_n_diff * 2 / N
+        dLda = n_p_diff * 2 / N
+        dLdp = p_a_diff * 2 / N
+        dLdn = a_n_diff * 2 / N
+        # masking gradients with zeros for triplets where loss was zero
+        dLda[self.Li==0.] = 0.
+        dLdp[self.Li==0.] = 0.
+        dLdn[self.Li==0.] = 0.
         # applying previous gradient (elementwise multiplication)
-        ga = (self.dLda * gy[0]).astype(xp.float32)
-        gp = (self.dLdp * gy[0]).astype(xp.float32)
-        gn = (self.dLdn * gy[0]).astype(xp.float32)
+        ga = (dLda * gy[0]).astype(xp.float32)
+        gp = (dLdp * gy[0]).astype(xp.float32)
+        gn = (dLdn * gy[0]).astype(xp.float32)
         
         return ga, gp, gn
         
