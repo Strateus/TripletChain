@@ -4,10 +4,10 @@ TripletLoss criterion for Chainer
 ## Usage example
 
 ```python
-from chainer import FunctionSet
+from chainer import Chain
 from loss import triplet_loss
 
-class TripletNet(FunctionSet):
+class TripletNet(Chain):
 
     def forward_once(self, x_data, train=True):
         x = Variable(x_data)
