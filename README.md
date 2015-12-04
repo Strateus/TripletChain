@@ -4,23 +4,23 @@ TripletLoss criterion for Chainer
 ## Usage example
 
 ```python
-    from chainer import FunctionSet
-    from loss import triplet_loss
+from chainer import FunctionSet
+from loss import triplet_loss
+
+class TripletNet(FunctionSet):
+
+    def forward_once(self, x_data, train=True):
+        x = Variable(x_data)
+        h = self.layer1(x)
+        ...
+        y = self.layerN(h)
   
-    class TripletNet(FunctionSet):
+        return y
   
-      def forward_once(self, x_data, train=True):
-          x = Variable(x_data)
-          h = self.layer1(x)
-          ...
-          y = self.layerN(h)
+    def forward(self, a, p, n, train=True):
+        y_a = self.forward_once(a, train)
+        y_p = self.forward_once(p, train)
+        y_n = self.forward_once(n, train)
   
-          return y
-  
-      def forward(self, a, p, n, train=True):
-          y_a = self.forward_once(a, train)
-          y_p = self.forward_once(p, train)
-          y_n = self.forward_once(n, train)
-  
-          return triplet_loss(y_a, y_p, y_n)
+        return triplet_loss(y_a, y_p, y_n)
 ```
