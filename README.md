@@ -4,7 +4,7 @@ TripletLoss criterion for Chainer
 ## Usage example
 
 ```python
-from chainer import Chain
+from chainer import Chain, Variable
 from loss import triplet_loss
 
 class TripletNet(Chain):
